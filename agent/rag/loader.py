@@ -14,12 +14,25 @@ import json
 import mimetypes
 import signal
 import threading
-from pathlib import Path
+
 from typing import List, Optional
 
 from langchain_core.documents import Document
 
 from agent.config import DASHSCOPE_API_KEY, VISION_MODEL, ASR_MODEL
+from pathlib import Path
+
+def iter_supported_files(path: str):
+    p = Path(path)
+    if p.is_file():
+        yield p
+        return
+    if not p.is_dir():
+        raise FileNotFoundError(f"路径不存在: {path}")
+
+    for f in p.rglob("*"):
+        if f.is_file() and f.suffix.lower() in {".txt", ".md", ".pdf"}:
+            yield f
 
 
 # ──────────────────────── 超时工具 ────────────────────────

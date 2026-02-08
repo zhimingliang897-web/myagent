@@ -59,40 +59,44 @@ MyAgent/
 
 所有模型名称统一管理，换模型只改这一个文件：
 
-| 变量 | 用途 | 当前值 |
-|------|------|--------|
-| `MODEL_NAME` | Agent 对话主模型 | `deepseek-v3.1` |
-| `EMBEDDING_MODEL` | 向量嵌入 | `text-embedding-v3` |
-| `VISION_MODEL` | 图片/视频理解 | `qwen-vl-plus-2025-08-15` |
-| `ASR_MODEL` | 语音识别 | `fun-asr-2025-11-07` |
+
+| 变量              | 用途             | 当前值                    |
+| ----------------- | ---------------- | ------------------------- |
+| `MODEL_NAME`      | Agent 对话主模型 | `deepseek-v3.1`           |
+| `EMBEDDING_MODEL` | 向量嵌入         | `text-embedding-v3`       |
+| `VISION_MODEL`    | 图片/视频理解    | `qwen-vl-plus-2025-08-15` |
+| `ASR_MODEL`       | 语音识别         | `fun-asr-2025-11-07`      |
 
 ### tools.py — Agent 工具
 
-| 工具 | 功能 | 依赖 |
-|------|------|------|
-| `get_current_datetime` | 获取当前日期时间 | 标准库 |
-| `calculate` | 安全数学计算（基于 AST） | 标准库 |
-| `web_search` | DuckDuckGo 网页搜索 | httpx |
+
+| 工具                   | 功能                     | 依赖   |
+| ---------------------- | ------------------------ | ------ |
+| `get_current_datetime` | 获取当前日期时间         | 标准库 |
+| `calculate`            | 安全数学计算（基于 AST） | 标准库 |
+| `web_search`           | DuckDuckGo 网页搜索      | httpx  |
 
 ### loader.py — 文档加载器
 
 **文本类**（直接提取文字）：
 
-| 格式 | 处理方式 |
-|------|----------|
-| `.txt` `.md` | 读取原文 |
-| `.pdf` | PyPDFLoader 按页提取 |
-| `.docx` | python-docx 提取段落 |
-| `.xlsx` | openpyxl 按 sheet 提取，单元格用 `\|` 分隔 |
-| `.pptx` | python-pptx 按 slide 提取文本框 |
+
+| 格式         | 处理方式                                 |
+| ------------ | ---------------------------------------- |
+| `.txt` `.md` | 读取原文                                 |
+| `.pdf`       | PyPDFLoader 按页提取                     |
+| `.docx`      | python-docx 提取段落                     |
+| `.xlsx`      | openpyxl 按 sheet 提取，单元格用`|` 分隔 |
+| `.pptx`      | python-pptx 按 slide 提取文本框          |
 
 **多媒体类**（调 DashScope API 转文字后索引）：
 
-| 格式 | 处理方式 |
-|------|----------|
-| `.png` `.jpg` `.jpeg` `.bmp` `.webp` `.gif` | 视觉模型生成描述 + OCR |
-| `.mp3` `.wav` `.flac` `.m4a` `.ogg` `.aac` | 语音识别转文字 |
-| `.mp4` `.avi` `.mov` `.mkv` `.webm` | 视觉模型视频理解（<50MB） |
+
+| 格式                                        | 处理方式                  |
+| ------------------------------------------- | ------------------------- |
+| `.png` `.jpg` `.jpeg` `.bmp` `.webp` `.gif` | 视觉模型生成描述 + OCR    |
+| `.mp3` `.wav` `.flac` `.m4a` `.ogg` `.aac`  | 语音识别转文字            |
+| `.mp4` `.avi` `.mov` `.mkv` `.webm`         | 视觉模型视频理解（<50MB） |
 
 ### vectorstore.py — 向量存储
 
@@ -121,6 +125,19 @@ python scripts/index_docs.py data/新文档.pdf --append
 
 # 自定义参数
 python scripts/index_docs.py data/ --batch-size 10 --chunk-size 800 --chunk-overlap 200
+
+
+更新版(更稳健)
+先试这组（中文/笔记类很常见）：
+
+python scripts/index_docs.py data/ --chunk-size 800 --chunk-overlap 120 --batch-size 10
+
+遇到限流/不稳定，再加 sleep
+python scripts/index_docs.py data/ --chunk-size 800 --chunk-overlap 120 --batch-size 10 --sleep 0.5
+
+增量追加
+python scripts/index_docs.py data/ --append --batch-size 10
+
 ```
 
 ## 技术栈

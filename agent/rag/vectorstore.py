@@ -41,55 +41,59 @@ def split_documents(
     print(f"  分块完成: {len(docs)} 个文档 → {len(chunks)} 个片段")
     return chunks
 
-
 def build_vectorstore(
     chunks: List[Document],
     store_path: Optional[str] = None,
     batch_size: int = DEFAULT_BATCH_SIZE,
     append: bool = False,
+    vectorstore: Optional[FAISS] = None,       # ✅ 允许复用已加载的 vs，避免反复 load_local
+    save_every_batch: bool = True,             # ✅ 每批落盘，防止中断白跑
+    sleep_s: float = 0.0,                      # ✅ 批间等待（限流时可调大）
 ) -> FAISS:
-    """从文档片段构建 FAISS 向量存储并持久化。
-
-    Args:
-        chunks: 文档片段列表
-        store_path: 持久化路径
-        batch_size: 每批发送给 embedding API 的文档数量
-                    DashScope text-embedding-v3 限制每次最多 25 个
-        append: 是否追加到已有的向量存储（增量索引）
-    """
+    """从文档片段构建/追加 FAISS 向量存储并持久化。"""
     save_dir = Path(store_path) if store_path else DEFAULT_STORE_PATH
     embeddings = get_embeddings()
+    save_dir.mkdir(parents=True, exist_ok=True)
 
-    # 如果是增量模式，先加载已有索引
-    vectorstore = None
-    if append and (save_dir / "index.faiss").exists():
+    # 需要追加且还没传入 vectorstore 时，尝试从磁盘加载
+    if vectorstore is None and append and (save_dir / "index.faiss").exists():
         vectorstore = FAISS.load_local(
             str(save_dir), embeddings, allow_dangerous_deserialization=True
         )
-        print(f"  已加载现有索引，将追加 {len(chunks)} 个片段")
+        print(f"  已加载现有索引，将追加 {len(chunks)} 个片段", flush=True)
 
-    # 分 batch 向量化
     total = len(chunks)
-    for i in range(0, total, batch_size):
-        batch = chunks[i : i + batch_size]
-        end = min(i + batch_size, total)
-        print(f"  向量化 [{i + 1}-{end}] / {total} ...")
 
-        if vectorstore is None:
-            vectorstore = FAISS.from_documents(batch, embeddings)
-        else:
-            vectorstore.add_documents(batch)
+    try:
+        for i in range(0, total, batch_size):
+            batch = chunks[i : i + batch_size]
+            end = min(i + batch_size, total)
+            print(f"  向量化 [{i + 1}-{end}] / {total} ...", flush=True)
 
-        # 批次间等待，避免触发 API 限流
-        if end < total:
-            time.sleep(0.5)
+            if vectorstore is None:
+                vectorstore = FAISS.from_documents(batch, embeddings)
+            else:
+                vectorstore.add_documents(batch)
 
-    save_dir.mkdir(parents=True, exist_ok=True)
+            if save_every_batch:
+                vectorstore.save_local(str(save_dir))
+                # 可选：打印更少一点就把下面这行注释掉
+                print(f"  已保存进度到 {save_dir}", flush=True)
+
+            if sleep_s and end < total:
+                time.sleep(sleep_s)
+
+    except KeyboardInterrupt:
+        print("\n  收到 Ctrl+C，中断构建；正在保存当前索引...", flush=True)
+        if vectorstore is not None:
+            vectorstore.save_local(str(save_dir))
+            print("  已保存。退出。", flush=True)
+        sys.exit(130)
+
+    # 最后再保存一次
     vectorstore.save_local(str(save_dir))
-    print(f"  向量存储已保存到 {save_dir} (共 {total} 个片段)")
-
+    print(f"  向量存储已保存到 {save_dir} (本次处理 {total} 个片段)", flush=True)
     return vectorstore
-
 
 def load_vectorstore(store_path: Optional[str] = None) -> FAISS:
     """从磁盘加载已有的 FAISS 向量存储。"""

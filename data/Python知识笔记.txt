@@ -1,0 +1,83 @@
+Python 装饰器详解
+
+装饰器（Decorator）是 Python 中一种强大的语法特性，允许你在不修改原函数代码的情况下，动态地给函数添加功能。
+
+基本语法：
+@decorator
+def function():
+    pass
+
+等价于：
+function = decorator(function)
+
+常见用途：
+1. 日志记录 - 在函数执行前后自动记录日志
+2. 权限验证 - 检查用户是否有权限执行某操作
+3. 缓存 - 缓存函数的返回值，避免重复计算
+4. 计时 - 测量函数执行时间
+5. 重试 - 函数执行失败时自动重试
+
+带参数的装饰器示例：
+
+def repeat(n):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for _ in range(n):
+                result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
+
+@repeat(3)
+def say_hello():
+    print("Hello!")
+
+---
+
+Python 生成器详解
+
+生成器（Generator）是一种特殊的迭代器，使用 yield 关键字来生成值。
+
+优点：
+1. 内存效率 - 不需要一次性将所有数据加载到内存
+2. 惰性求值 - 只在需要时才计算下一个值
+3. 可以表示无限序列
+
+示例：
+def fibonacci():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+# 使用
+fib = fibonacci()
+for _ in range(10):
+    print(next(fib))
+
+---
+
+Python 上下文管理器
+
+上下文管理器通过 __enter__ 和 __exit__ 方法实现，常用 with 语句调用。
+
+最常见的例子是文件操作：
+with open('file.txt', 'r') as f:
+    content = f.read()
+# 文件会自动关闭
+
+也可以用 contextlib.contextmanager 装饰器来创建：
+
+from contextlib import contextmanager
+
+@contextmanager
+def timer():
+    import time
+    start = time.time()
+    yield
+    end = time.time()
+    print(f"耗时: {end - start:.2f}秒")
+
+with timer():
+    # 你的代码
+    pass

@@ -2,10 +2,12 @@ from langchain_community.chat_models import ChatTongyi
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
-# 1. 配置模型 (DashScope SDK 会自动处理，移除 base_url 以避免模式冲突)
+from agent.config import DASHSCOPE_API_KEY, MODEL_NAME
+
+# 1. 配置模型 (API key 从 .env 文件加载)
 llm = ChatTongyi(
-    model="deepseek-v3.1", 
-    api_key="sk-0ef56d1b3ba54a188ce28a46c54e2a24"
+    model=MODEL_NAME,
+    api_key=DASHSCOPE_API_KEY,
 )
 
 # 2. 定义标准的 ChatPromptTemplate (修复了之前的语法错误)

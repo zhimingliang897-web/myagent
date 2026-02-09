@@ -2,7 +2,11 @@
 
 基于 LangChain + LangGraph 的个人知识库问答智能体。
 
-能加载多种格式的本地文档，建立向量索引，通过对话方式基于文档内容回答问题，同时具备工具调用能力。
+**核心能力**:
+- 📚 **RAG 知识库**: 多格式文档加载、向量检索、基于文档回答
+- 🧠 **持久化记忆**: 跨会话对话记忆，支持多线程管理
+- 🛠️ **工具调用**: 日期时间、计算器、网页搜索
+- 💰 **Token 优化**: 消息窗口限制，长对话节省 50-80% token
 
 ## 快速开始
 
@@ -39,16 +43,22 @@ MyAgent/
 │   ├── llm.py                 # ChatTongyi LLM 封装
 │   ├── callbacks.py           # Token 用量统计回调
 │   ├── tools.py               # Agent 工具（日期、计算、搜索）
-│   └── rag/                   # RAG 子包
+│   ├── rag/                   # RAG 子包
+│   │   ├── __init__.py
+│   │   ├── loader.py          # 多格式文档加载器
+│   │   ├── vectorstore.py     # 向量存储（分块 + FAISS）
+│   │   └── retriever.py       # 检索工具（包装为 Agent tool）
+│   └── memory/                # Memory 子包
 │       ├── __init__.py
-│       ├── loader.py          # 多格式文档加载器
-│       ├── vectorstore.py     # 向量存储（分块 + FAISS）
-│       └── retriever.py       # 检索工具（包装为 Agent tool）
+│       └── checkpointer.py    # SqliteSaver 持久化记忆
 │
 ├── scripts/
-│   └── index_docs.py          # 一键文档索引脚本
+│   ├── index_docs.py          # 一键文档索引脚本
+│   └── inspect_db.py          # 数据库检查脚本
 │
-├── data/                      # 用户文档存放目录
+├── data/                      # 用户文档 + 数据库目录
+│   └── db/                    # 数据库文件（运行后生成）
+│       └── agent_memory.db
 ├── vectorstore/               # FAISS 向量索引（自动生成，已 gitignore）
 └── 工作日志/                   # 开发日志
 ```
@@ -113,6 +123,19 @@ MyAgent/
 ### callbacks.py — Token 统计
 
 每次对话后输出累计的 prompt/completion/total tokens。
+
+### checkpointer.py — 持久化记忆
+
+- 使用 `SqliteSaver` 将对话状态存储到 SQLite 数据库
+- 支持多 thread_id 线程管理，可切换不同对话上下文
+- 命令：`/thread <id>` 切换线程，`clear` 生成新线程
+
+### Token 优化
+
+- **消息窗口限制**: 默认只保留最近 10 条消息发送给 LLM
+- **配置**: 修改 `main.py` 中的 `MAX_MESSAGES` 变量
+- **效果**: 长对话 token 消耗减少 50-80%
+- **数据不丢失**: 所有历史仍完整存储在数据库中
 
 ## 索引文档
 

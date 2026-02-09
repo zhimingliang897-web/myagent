@@ -1,5 +1,42 @@
 # Changelog
 
+## Day 3 — 2026-02-09 — Phase 3: Memory + Token 优化
+
+### 新增
+
+- **Memory 子包** (`agent/memory/`)
+  - `checkpointer.py` — SqliteSaver 持久化对话记忆
+  - 数据库路径: `data/db/agent_memory.db`
+  - 支持多 thread_id 管理，可切换会话线程
+- **数据库检查脚本** (`scripts/inspect_db.py`)
+  - 列出数据库中的表和行数
+  - 可选查看最近 checkpoint 详情
+  - 自动处理相对路径，避免转义问题
+- **Token 优化**
+  - `trim_message_history()` 状态修改器
+  - 消息窗口限制（默认保留最近 10 条）
+  - 长对话 token 消耗减少 50-80%
+- `main.py` 集成 Memory 和 Token 优化
+  - `/thread <id>` 命令切换会话
+  - `clear` 生成新 thread_id
+  - 启动时显示消息窗口限制配置
+
+### 变更
+
+- `main.py`:
+  - 导入 `trim_messages`
+  - 添加 `MAX_MESSAGES` 配置常量
+  - `create_react_agent` 新增 `checkpointer` 和 `state_modifier` 参数
+  - `invoke` 调用传入 `config` 字典指定 `thread_id`
+- `requirements.txt` 新增 `langgraph-checkpoint-sqlite`
+- `data/db/` 目录创建，存放所有数据库文件
+
+### 修复
+
+- `scripts/inspect_db.py` 路径转义问题（`\a` 被解释为响铃符）
+
+---
+
 ## Day 2 — 2026-02-08 — Phase 2: RAG + 多格式支持
 
 ### 新增

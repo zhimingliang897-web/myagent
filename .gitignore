@@ -3,6 +3,7 @@
 .env.*
 # Large data
 data/
+
 vectorstore/
 # Python
 __pycache__/

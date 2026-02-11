@@ -1,5 +1,24 @@
 # Changelog
 
+## Day 4 — 2026-02-11 — Phase 4: 手动构建 StateGraph
+
+### 新增
+
+- **`agent/graph.py`** — 手动构建 LangGraph StateGraph，替代 `create_agent` 黑盒
+  - 自定义 `AgentState`（messages + iteration_count）
+  - 6 个节点: trim、rewrite、agent、tools、increment、force_reply
+  - 查询改写（rewrite_node）— 短问题/含代词时 LLM 先改写再检索
+  - 工具调用上限（max_iterations=5）— 防止无限循环，超限强制回答
+- `main.py` 双模式支持: `--classic` 使用旧版，默认使用新版 StateGraph
+
+### 变更
+
+- `main.py` 重构为 `_build_classic_agent()` 和 `_build_graph_agent()` 双分支
+- 新增 `argparse` 命令行参数解析
+- 启动时显示当前 Agent 模式名称
+
+---
+
 ## Day 3 — 2026-02-09 — Phase 3: Memory + Token 优化
 
 ### 新增

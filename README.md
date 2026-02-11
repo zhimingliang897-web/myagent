@@ -23,7 +23,8 @@ pip install -r requirements.txt
 python scripts/index_docs.py data/
 
 # 4. 启动对话
-python main.py
+python main.py              # 默认: 手动 StateGraph 模式
+python main.py --classic    # 使用旧版 create_agent 封装
 ```
 
 ## 项目结构
@@ -31,7 +32,7 @@ python main.py
 ```
 MyAgent/
 │
-├── main.py                    # CLI 入口，交互式聊天循环
+├── main.py                    # CLI 入口（--classic 切换旧版）
 ├── test.py                    # 基础 LCEL chain 测试
 ├── requirements.txt           # Python 依赖
 ├── .env                       # API key（不入 git）
@@ -43,6 +44,7 @@ MyAgent/
 │   ├── llm.py                 # ChatTongyi LLM 封装
 │   ├── callbacks.py           # Token 用量统计回调
 │   ├── tools.py               # Agent 工具（日期、计算、搜索）
+│   ├── graph.py               # 手动 StateGraph（查询改写 + 工具上限保护）
 │   ├── rag/                   # RAG 子包
 │   │   ├── __init__.py
 │   │   ├── loader.py          # 多格式文档加载器
@@ -119,6 +121,22 @@ MyAgent/
 ### retriever.py — 检索工具
 
 将 FAISS retriever 包装为 `knowledge_search` Agent 工具。Agent 启动时自动检测向量索引是否存在，存在则加载，否则跳过（优雅降级）。
+
+### graph.py — 手动 StateGraph
+
+替代 `create_agent` 高层封装，手动构建 LangGraph 状态图：
+
+```
+START → trim → rewrite → agent → should_continue
+                                    ├─ tools → increment → check_iterations
+                                    │                        ├─ continue → agent
+                                    │                        └─ limit → force_reply → END
+                                    └─ END
+```
+
+- **查询改写 (rewrite)**: 短问题或含代词时 LLM 先改写再检索，提高 RAG 命中率
+- **工具调用上限 (max_iterations=5)**: 防止 LLM 无限循环调工具，超限强制回答
+- **双模式**: `python main.py` 用 StateGraph，`python main.py --classic` 用旧版
 
 ### callbacks.py — Token 统计
 

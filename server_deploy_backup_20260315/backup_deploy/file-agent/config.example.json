@@ -1,0 +1,57 @@
+{
+  "storage": {
+    "root": "F:\\MyFiles",
+    "uploads": "F:\\MyFiles\\uploads",
+    "trash": "F:\\MyFiles\\.trash",
+    "mounts": [
+      {
+        "name": "文档库",
+        "path": "F:\\Documents",
+        "icon": "📚",
+        "readonly": true
+      },
+      {
+        "name": "视频库",
+        "path": "E:\\Videos",
+        "icon": "🎬",
+        "readonly": true
+      }
+    ]
+  },
+  "auth": {
+    "password": "your_password_here",
+    "session_secret": "change_this_to_random_string",
+    "session_expire_hours": 24
+  },
+  "upload": {
+    "max_size_mb": 2048,
+    "allowed_ext": [],
+    "chunk_size_mb": 10
+  },
+  "search": {
+    "excluded_dirs": [".trash", "$RECYCLE.BIN", "System Volume Information", ".git", "node_modules", "__pycache__"],
+    "index_interval_hours": 24
+  },
+  "llm": {
+    "api_key": "your_dashscope_api_key_here",
+    "model": "qwen-plus",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  },
+  "natapp": {
+    "token": "your_natapp_token_here",
+    "enabled": true
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5000
+  },
+  "cors": {
+    "origins": ["*"]
+  },
+  "email": {
+    "smtp_server": "smtp.qq.com",
+    "smtp_port": 465,
+    "sender": "",
+    "password": ""
+  }
+}

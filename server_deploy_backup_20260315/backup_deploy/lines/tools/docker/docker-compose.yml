@@ -1,0 +1,12 @@
+services:
+  word-study:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+    volumes:
+      - ../word:/app/word
+    restart: unless-stopped

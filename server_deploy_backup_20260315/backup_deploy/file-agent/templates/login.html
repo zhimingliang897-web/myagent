@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>私人文件系统 - 登录</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --surface: #161922;
+            --surface2: #1e2230;
+            --border: #2a2f42;
+            --accent: #6c63ff;
+            --text: #e8eaf0;
+            --text-dim: #8892a4;
+            --error: #ff6b6b;
+            --success: #4ecdc4;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            margin: 20px;
+        }
+        .logo {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, var(--accent), #4ecdc4);
+            border-radius: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin: 0 auto 24px;
+        }
+        h1 { text-align: center; font-size: 24px; font-weight: 600; margin-bottom: 8px; }
+        .subtitle { text-align: center; color: var(--text-dim); font-size: 14px; margin-bottom: 32px; }
+        
+        .form-group { margin-bottom: 20px; }
+        label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 8px; font-weight: 500; }
+        input {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px 16px;
+            color: var(--text);
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus { border-color: var(--accent); }
+        input::placeholder { color: var(--text-dim); }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn:hover { background: #5a52d5; }
+        .btn:disabled { background: var(--border); cursor: not-allowed; }
+        
+        .error-msg { color: var(--error); font-size: 13px; text-align: center; margin-top: 15px; min-height: 20px; }
+        .success-msg { color: var(--success); font-size: 13px; text-align: center; margin-top: 15px; }
+        
+        .hint {
+            margin-top: 24px;
+            padding: 16px;
+            background: var(--surface2);
+            border-radius: 10px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+        .hint-title { color: var(--text); font-weight: 500; margin-bottom: 8px; }
+        .hint code { background: var(--bg); padding: 2px 6px; border-radius: 4px; color: var(--accent); }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <div class="logo">🗂️</div>
+        <h1>私人文件系统</h1>
+        <p class="subtitle">请输入密码登录系统</p>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="password">访问密码</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    placeholder="请输入密码" 
+                    autocomplete="current-password" 
+                    required
+                    autofocus
+                >
+            </div>
+            <button type="submit" class="btn" id="submit-btn">登 录</button>
+            <p class="error-msg" id="error-msg"></p>
+        </form>
+        
+    </div>
+    
+    <script>
+        const form = document.getElementById('login-form');
+        const errorMsg = document.getElementById('error-msg');
+        const submitBtn = document.getElementById('submit-btn');
+        const passwordInput = document.getElementById('password');
+        
+        // 检查是否已登录
+        fetch('/api/auth/check', { credentials: 'include' })
+            .then(res => {
+                if (res.ok) {
+                    window.location.href = '/';
+                }
+            })
+            .catch(() => {});
+        
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errorMsg.textContent = '';
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登录中...';
+            
+            const password = passwordInput.value;
+            
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ password })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok && data.success) {
+                    errorMsg.className = 'success-msg';
+                    errorMsg.textContent = '登录成功，正在跳转...';
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 500);
+                } else {
+                    errorMsg.className = 'error-msg';
+                    errorMsg.textContent = data.detail || '密码错误，请重试';
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '登 录';
+                    passwordInput.focus();
+                    passwordInput.select();
+                }
+            } catch (err) {
+                errorMsg.className = 'error-msg';
+                errorMsg.textContent = '网络错误，请检查服务是否正常运行';
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登 录';
+            }
+        });
+        
+        // Enter 键提交
+        passwordInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                form.dispatchEvent(new Event('submit'));
+            }
+        });
+    </script>
+</body>
+</html>

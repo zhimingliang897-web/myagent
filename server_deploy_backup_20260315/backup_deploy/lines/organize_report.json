@@ -1,0 +1,174 @@
+{
+  "summary": "一个基于影视台词学习单词的项目，包含PDF提取、台词查询、学习笔记生成、TTS语音和Web界面等功能模块。",
+  "issues": [
+    "项目根目录下核心脚本与word数据目录混杂，结构不够清晰",
+    "word目录下各day子目录结构重复，但音频文件命名规则不统一（如w_0.mp3, d_0_0_0.mp3）",
+    "存在空文件（0.0 B）和疑似临时文件（如day5/audio/d_0_1_1.mp3）",
+    "docker配置中使用了硬编码的绝对路径（../word:/app/word）",
+    "部分学习笔记文件（如day1_study.md）因API错误内容不完整"
+  ],
+  "actions": [
+    {
+      "action": "move",
+      "path": "docker",
+      "target": "tools/docker",
+      "reason": "Docker部署配置属于通用工具，应移至tools目录",
+      "risk": "low",
+      "category": "tool"
+    },
+    {
+      "action": "move",
+      "path": "templates",
+      "target": "output/templates",
+      "reason": "HTML模板是Web界面的输出产物，应移至output目录",
+      "risk": "low",
+      "category": "output"
+    },
+    {
+      "action": "move",
+      "path": "word",
+      "target": "input/word",
+      "reason": "单词列表、PDF等是原始输入素材，应移至input目录并按课程组织",
+      "risk": "low",
+      "category": "input"
+    },
+    {
+      "action": "delete",
+      "path": "word/day5/audio/d_0_1_1.mp3",
+      "target": null,
+      "reason": "空文件（0.0 B），无实际内容",
+      "risk": "low",
+      "category": "temp"
+    },
+    {
+      "action": "delete",
+      "path": "word/day5/audio/d_2_2_1.mp3",
+      "target": null,
+      "reason": "空文件（0.0 B），无实际内容",
+      "risk": "low",
+      "category": "temp"
+    },
+    {
+      "action": "delete",
+      "path": "word/day6/audio/w_8.mp3",
+      "target": null,
+      "reason": "空文件（0.0 B），无实际内容",
+      "risk": "low",
+      "category": "temp"
+    },
+    {
+      "action": "fix_content",
+      "path": "tools/docker/docker-compose.yml",
+      "target": null,
+      "reason": "包含硬编码绝对路径（../word:/app/word），应改为相对路径或环境变量",
+      "risk": "medium",
+      "category": "config"
+    },
+    {
+      "action": "keep",
+      "path": "word/day1/day1_study.md",
+      "target": null,
+      "reason": "内容不完整（API错误），但属于学习输出，建议保留并后续修复",
+      "risk": "low",
+      "category": "output"
+    },
+    {
+      "action": "move",
+      "path": "app.py",
+      "target": "app.py",
+      "reason": "核心Web应用入口，应保留在根目录",
+      "risk": "low",
+      "category": "core"
+    },
+    {
+      "action": "move",
+      "path": "config.json",
+      "target": "config.json",
+      "reason": "核心配置文件，应保留在根目录",
+      "risk": "low",
+      "category": "config"
+    },
+    {
+      "action": "move",
+      "path": "pdf_extractor.py",
+      "target": "tools/pdf_extractor.py",
+      "reason": "PDF提取工具脚本，应移至tools目录",
+      "risk": "low",
+      "category": "tool"
+    },
+    {
+      "action": "move",
+      "path": "pop_mystic_scraper.py",
+      "target": "tools/pop_mystic_scraper.py",
+      "reason": "台词爬虫工具脚本，应移至tools目录",
+      "risk": "low",
+      "category": "tool"
+    },
+    {
+      "action": "move",
+      "path": "quote_formatter.py",
+      "target": "tools/quote_formatter.py",
+      "reason": "台词格式化工具脚本，应移至tools目录",
+      "risk": "low",
+      "category": "tool"
+    },
+    {
+      "action": "move",
+      "path": "tts_generator.py",
+      "target": "tools/tts_generator.py",
+      "reason": "TTS语音生成工具脚本，应移至tools目录",
+      "risk": "low",
+      "category": "tool"
+    },
+    {
+      "action": "move",
+      "path": "启动.bat",
+      "target": "scripts/启动.bat",
+      "reason": "一次性启动脚本，应移至scripts目录",
+      "risk": "low",
+      "category": "script"
+    },
+    {
+      "action": "move",
+      "path": ".gitignore",
+      "target": ".gitignore",
+      "reason": "版本控制忽略文件，应保留在根目录",
+      "risk": "low",
+      "category": "config"
+    },
+    {
+      "action": "move",
+      "path": "CHANGELOG.md",
+      "target": "doc/CHANGELOG.md",
+      "reason": "项目更新日志文档，应移至doc目录",
+      "risk": "low",
+      "category": "doc"
+    },
+    {
+      "action": "move",
+      "path": "README.md",
+      "target": "doc/README.md",
+      "reason": "项目说明文档，应移至doc目录",
+      "risk": "low",
+      "category": "doc"
+    },
+    {
+      "action": "move",
+      "path": "WHAT_WE_LEARN.md",
+      "target": "doc/WHAT_WE_LEARN.md",
+      "reason": "技术原理文档，应移至doc目录",
+      "risk": "low",
+      "category": "doc"
+    }
+  ],
+  "new_dirs": [
+    "tools",
+    "scripts",
+    "input",
+    "output",
+    "cache",
+    "doc"
+  ],
+  "notes": "建议在input/word下保持原有的day1~day9子目录结构，但将生成的JSON、CSV等中间文件移至cache目录。音频文件（MP3）作为最终学习材料的一部分，可保留在input/word各day子目录下，或考虑统一移至output/audio。",
+  "_root": "E:\\integrity\\2台词"
+}

@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>私人文件系统</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="app">
+        <header class="header">
+            <div class="header-left">
+                <div class="logo">🗂️</div>
+                <div>
+                    <h1>私人文件系统</h1>
+                    <p class="subtitle">智能管理你的文件</p>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索文件...">
+                    <button id="search-btn">🔍</button>
+                </div>
+                <span id="user-status" class="user-status">👤 已登录</span>
+                <button class="btn-icon" onclick="window.open('/settings', '_blank')" title="系统设置">⚙️ 设置</button>
+                <button class="btn-icon btn-logout" onclick="logout()" title="退出登录">🚪 退出</button>
+            </div>
+        </header>
+        
+        <div class="main">
+            <aside class="sidebar">
+                <div class="nav-item active" data-path="" onclick="navigateTo('')" id="nav-root">
+                    <span class="icon">🏠</span> MyFiles
+                </div>
+                <div class="nav-section" style="margin-top: 8px;">挂载目录</div>
+                <div id="mounts-list"></div>
+                <hr>
+                <div class="nav-item" onclick="showStarred()">
+                    <span class="icon">⭐</span> 收藏
+                </div>
+                <div class="nav-item" onclick="showTrash()">
+                    <span class="icon">🗑️</span> 回收站
+                </div>
+                <hr>
+                <div class="nav-section">快捷分类</div>
+                <div class="nav-item" onclick="searchByType('image')">
+                    <span class="icon">🖼️</span> 图片
+                </div>
+                <div class="nav-item" onclick="searchByType('video')">
+                    <span class="icon">🎬</span> 视频
+                </div>
+                <div class="nav-item" onclick="searchByType('document')">
+                    <span class="icon">📄</span> 文档
+                </div>
+                <div class="nav-item" onclick="searchByType('audio')">
+                    <span class="icon">🎵</span> 音频
+                </div>
+                <hr>
+                <div class="nav-item" onclick="toggleAgent()">
+                    <span class="icon">🤖</span> AI助手
+                </div>
+            </aside>
+            
+            <main class="content">
+                <div class="toolbar">
+                    <div class="breadcrumb" id="breadcrumb"></div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-primary" onclick="showUploadModal()">📤 上传</button>
+                        <button class="btn" onclick="showNewFolderModal()">📁 新建文件夹</button>
+                    </div>
+                </div>
+                
+                <div class="file-header">
+                    <label class="checkbox"><input type="checkbox" id="select-all" onchange="toggleSelectAll()"></label>
+                    <span class="col-name">名称</span>
+                    <span class="col-size">大小</span>
+                    <span class="col-date">修改时间</span>
+                    <span class="col-actions">操作</span>
+                </div>
+                
+                <div class="file-list" id="file-list"></div>
+                
+                <div class="selection-bar" id="selection-bar">
+                    <span>已选择 <strong id="selected-count">0</strong> 个文件</span>
+                    <div class="selection-actions">
+                        <button class="btn-sm" onclick="downloadSelected()">📥 下载</button>
+                        <button class="btn-sm" onclick="showCopyModal()">📋 复制</button>
+                        <button class="btn-sm" onclick="showMoveModal()">📁 移动</button>
+                        <button class="btn-sm" onclick="showRenameModal()">✏️ 重命名</button>
+                        <button class="btn-sm btn-danger" onclick="deleteSelected()">🗑️ 删除</button>
+                        <button class="btn-sm" onclick="clearSelection()">取消</button>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <div class="agent-panel" id="agent-panel">
+            <div class="agent-header">
+                <span>🤖 AI助手</span>
+                <button onclick="toggleAgent()">✕</button>
+            </div>
+            <div class="agent-messages" id="agent-messages">
+                <div class="agent-msg">
+                    你好！我是AI助手，可以用自然语言帮你管理文件。<br>
+                    试试说："<span class="example" onclick="sendAgentMsg('帮我找所有PDF文件')">帮我找所有PDF文件</span>"
+                </div>
+            </div>
+            <div class="agent-input">
+                <input type="text" id="agent-input" placeholder="输入指令..." onkeypress="if(event.key==='Enter')sendAgentMsg()">
+                <button onclick="sendAgentMsg()">发送</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="upload-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📤 上传文件</h2>
+                <button onclick="closeModal('upload-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="upload-area">
+                    <p>拖拽文件到这里，或点击选择文件</p>
+                    <input type="file" id="file-input" multiple style="display:none">
+                </div>
+                <div class="upload-list" id="upload-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('upload-modal')">取消</button>
+                <button class="btn btn-primary" id="upload-btn" onclick="doUploadFiles()">上传</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="new-folder-modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>📁 新建文件夹</h2>
+                <button onclick="closeModal('new-folder-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="folder-name" placeholder="文件夹名称">
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('new-folder-modal')">取消</button>
+                <button class="btn btn-primary" onclick="createFolder()">创建</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="move-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📁 移动文件</h2>
+                <button onclick="closeModal('move-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>选择目标文件夹：</p>
+                <div class="folder-tree" id="folder-tree"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('move-modal')">取消</button>
+                <button class="btn btn-primary" onclick="moveFiles()">移动</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="copy-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📋 复制文件</h2>
+                <button onclick="closeModal('copy-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <p>选择目标文件夹：</p>
+                <div class="folder-tree" id="copy-folder-tree"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('copy-modal')">取消</button>
+                <button class="btn btn-primary" onclick="copyFiles()">复制</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="rename-modal">
+        <div class="modal-content modal-sm">
+            <div class="modal-header">
+                <h2>✏️ 重命名</h2>
+                <button onclick="closeModal('rename-modal')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="rename-input" placeholder="请输入新名称">
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal('rename-modal')">取消</button>
+                <button class="btn btn-primary" onclick="doRename()">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="preview-modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h2 id="preview-title">预览</h2>
+                <button onclick="closeModal('preview-modal')">✕</button>
+            </div>
+            <div class="modal-body preview-body" id="preview-body"></div>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+    
+    <script src="/static/js/app.js?v=20240314b"></script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - Integrity Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .login-box { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px; }
+        .login-box h1 { text-align: center; margin-bottom: 30px; font-size: 1.8rem; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #888; font-size: 0.9rem; }
+        .form-group input { width: 100%; padding: 12px 15px; background: #0f0f1a; border: 1px solid #2a2a3a; border-radius: 8px; color: #fff; font-size: 1rem; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .btn { width: 100%; padding: 12px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .error { color: #ef4444; font-size: 0.85rem; margin-top: 10px; text-align: center; }
+        .links { text-align: center; margin-top: 20px; }
+        .links a { color: #667eea; text-decoration: none; }
+        .links a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>登录</h1>
+        <form id="login-form">
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="username" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="password" required autocomplete="current-password">
+            </div>
+            <p class="error" id="error-msg"></p>
+            <button type="submit" class="btn btn-primary" id="submit-btn">登录</button>
+        </form>
+        <div class="links">
+            <a href="/register">没有账号？去注册</a>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('submit-btn');
+            const errorMsg = document.getElementById('error-msg');
+            
+            btn.disabled = true;
+            btn.textContent = '登录中...';
+            errorMsg.textContent = '';
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            try {
+                const res = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                
+                if (data.error) {
+                    errorMsg.textContent = data.error;
+                } else {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('username', data.username);
+                    window.location.href = '/';
+                }
+            } catch (err) {
+                errorMsg.textContent = '网络错误: ' + err.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '登录';
+            }
+        });
+    </script>
+</body>
+</html>

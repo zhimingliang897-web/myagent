@@ -1,7 +1,9 @@
 import ast
+import json
 import operator
 import re
 from datetime import datetime
+from pathlib import Path
 
 import httpx
 from langchain_core.tools import tool
@@ -91,4 +93,237 @@ def web_search(query: str) -> str:
         return f"搜索出错: {e}"
 
 
-ALL_TOOLS = [get_current_datetime, calculate, web_search]
+@tool
+def remember_user_fact(key: str, value: str) -> str:
+    """记住关于用户的长期事实或偏好信息以供未来跨对话使用。
+    当你了解到关于用户的新事实时（例如：用户的名字，职业，爱好，习惯等），务必调用此工具。
+    参数说明：
+    - key: 事实名称，尽量精简，如 "名字", "职业", "编程语言偏好"
+    - value: 事实内容，如 "阿亮", "全栈工程师", "Python"
+    """
+    from agent.memory.profile import update_user_fact
+    return update_user_fact(key, value)
+
+
+@tool
+def get_weather(city: str) -> str:
+    """查询指定城市的实时天气信息。
+    当用户询问天气、气温、是否下雨等天气相关问题时使用此工具。
+    参数说明：
+    - city: 城市名（支持中文或英文，如 "北京"、"Shanghai"、"New York"）
+    """
+    try:
+        # wttr.in 免费天气 API，无需 Key
+        url = f"https://wttr.in/{city}?format=j1&lang=zh"
+        response = httpx.get(url, timeout=10.0, headers={"User-Agent": "curl/7.0"})
+        response.raise_for_status()
+        data = response.json()
+
+        current = data["current_condition"][0]
+        area = data["nearest_area"][0]
+
+        area_name = area["areaName"][0]["value"]
+        country = area["country"][0]["value"]
+        temp_c = current["temp_C"]
+        feels_like = current["FeelsLikeC"]
+        humidity = current["humidity"]
+        desc = current["lang_zh"][0]["value"] if current.get("lang_zh") else current["weatherDesc"][0]["value"]
+        wind_speed = current["windspeedKmph"]
+        wind_dir = current["winddir16Point"]
+        visibility = current["visibility"]
+
+        return (
+            f"📍 {area_name}, {country}\n"
+            f"🌡️ 当前气温: {temp_c}°C（体感 {feels_like}°C）\n"
+            f"🌤️ 天气状况: {desc}\n"
+            f"💧 湿度: {humidity}%\n"
+            f"💨 风速: {wind_speed} km/h，风向: {wind_dir}\n"
+            f"👁️ 能见度: {visibility} km"
+        )
+    except httpx.HTTPError as e:
+        return f"天气查询网络错误: {e}"
+    except (KeyError, IndexError, ValueError) as e:
+        return f"天气数据解析失败（城市名可能不正确）: {e}"
+    except Exception as e:
+        return f"天气查询失败: {e}"
+
+
+# ──────────────────────── 常驻免费扩展工具 ────────────────────────
+
+@tool
+def unit_convert(value: float, from_unit: str, to_unit: str) -> str:
+    """单位换算。支持常见长度、重量、温度、面积、体积单位。
+    当用户询问单位换算时使用此工具。
+    参数: value 数值, from_unit 源单位（如 m, km, kg, g, °C, °F）, to_unit 目标单位。"""
+    from_unit = from_unit.strip().lower()
+    to_unit = to_unit.strip().lower()
+    # 长度 -> 米
+    length_to_m = {"m": 1, "km": 1000, "dm": 0.1, "cm": 0.01, "mm": 0.001, "mi": 1609.344, "mile": 1609.344, "yd": 0.9144, "ft": 0.3048, "in": 0.0254, "inch": 0.0254}
+    # 重量 -> 千克
+    mass_to_kg = {"kg": 1, "g": 0.001, "mg": 1e-6, "t": 1000, "ton": 1000, "lb": 0.453592, "oz": 0.0283495}
+    try:
+        if from_unit in length_to_m and to_unit in length_to_m:
+            m = value * length_to_m[from_unit]
+            result = m / length_to_m[to_unit]
+            return f"{value} {from_unit} = {result:.6g} {to_unit}"
+        if from_unit in mass_to_kg and to_unit in mass_to_kg:
+            kg = value * mass_to_kg[from_unit]
+            result = kg / mass_to_kg[to_unit]
+            return f"{value} {from_unit} = {result:.6g} {to_unit}"
+        if from_unit in ("°c", "c", "摄氏度") and to_unit in ("°f", "f", "华氏度"):
+            f = value * 9 / 5 + 32
+            return f"{value}°C = {f:.2f}°F"
+        if from_unit in ("°f", "f", "华氏度") and to_unit in ("°c", "c", "摄氏度"):
+            c = (value - 32) * 5 / 9
+            return f"{value}°F = {c:.2f}°C"
+        return f"暂不支持从 {from_unit} 到 {to_unit} 的换算，支持: 长度(m,km,cm,mm,ft,in), 重量(kg,g,lb), 温度(°C,°F)。"
+    except Exception as e:
+        return f"换算出错: {e}"
+
+
+@tool
+def fetch_webpage(url: str, max_chars: int = 8000) -> str:
+    """抓取网页正文内容并返回纯文本（用于摘要或问答）。
+    当用户提供链接并希望了解页面内容时使用此工具。
+    参数: url 网页地址, max_chars 最多返回字符数（默认8000）。仅支持 http/https。"""
+    if not url.strip().lower().startswith(("http://", "https://")):
+        return "仅支持 http 或 https 链接。"
+    try:
+        resp = httpx.get(url, timeout=15.0, follow_redirects=True)
+        resp.raise_for_status()
+        text = resp.text
+        # 简单去标签
+        text = re.sub(r"<script[^>]*>[\s\S]*?</script>", "", text, flags=re.I)
+        text = re.sub(r"<style[^>]*>[\s\S]*?</style>", "", text, flags=re.I)
+        text = re.sub(r"<[^>]+>", " ", text)
+        text = re.sub(r"\s+", " ", text).strip()
+        if len(text) > max_chars:
+            text = text[:max_chars] + "..."
+        return text or "未能提取到正文内容。"
+    except Exception as e:
+        return f"抓取失败: {e}"
+
+
+@tool
+def format_json(json_string: str) -> str:
+    """格式化或校验 JSON 字符串。若输入合法则返回美化后的 JSON；否则返回错误信息。"""
+    try:
+        obj = json.loads(json_string)
+        return json.dumps(obj, ensure_ascii=False, indent=2)
+    except json.JSONDecodeError as e:
+        return f"JSON 解析错误: {e}"
+    except Exception as e:
+        return f"处理出错: {e}"
+
+
+@tool
+def summarize_text(text: str, max_sentences: int = 5) -> str:
+    """对长文本做简短摘要：取前 N 句或前 500 字。
+    当用户希望概括、总结一段文字时使用此工具。
+    参数: text 原文, max_sentences 最多保留句数（默认5）。"""
+    if not text or not text.strip():
+        return "没有可摘要的文本。"
+    text = text.strip()
+    # 按句号、问号、感叹号分句
+    sentences = re.split(r"[。！？!?]\s*", text)
+    sentences = [s.strip() for s in sentences if s.strip()]
+    if len(sentences) <= max_sentences:
+        return text[:500] + ("..." if len(text) > 500 else "")
+    result = "".join(s + "。" for s in sentences[:max_sentences])
+    return result[:500] + ("..." if len(result) > 500 else result)
+
+
+@tool
+def translate_text(text: str, target_lang: str = "中文") -> str:
+    """将文本翻译成目标语言。依赖 LLM 进行一次调用，会消耗少量 token。
+    当用户明确要求翻译时使用此工具。参数: text 待翻译文本, target_lang 目标语言（如 中文、英文）。"""
+    try:
+        from agent.llm import get_llm
+        llm = get_llm()
+        prompt = f"请将以下内容翻译成{target_lang}，只输出翻译结果，不要解释。\n\n{text}"
+        msg = llm.invoke(prompt)
+        return (msg.content or "").strip() or "翻译未返回内容。"
+    except Exception as e:
+        return f"翻译失败: {e}"
+
+
+def _make_text_to_image():
+    """文生图（通义万相）。仅当 ENABLE_TEXT_TO_IMAGE 为真时在 get_all_tools 中加入。"""
+    @tool
+    def text_to_image(prompt: str, size: str = "1024*1024") -> str:
+        """根据文字描述生成图片（文生图）。调用通义万相 API，返回图片 URL。
+        当用户要求“画一张图”“根据描述生成图片”时使用。参数: prompt 描述内容, size 可选 1024*1024 / 720*1280 / 1280*720。"""
+        try:
+            from dashscope import ImageSynthesis
+            from agent.config import DASHSCOPE_API_KEY
+            rsp = ImageSynthesis.call(
+                api_key=DASHSCOPE_API_KEY,
+                model="wanx2.1-t2i-turbo",
+                prompt=prompt,
+                n=1,
+                size=size or "1024*1024",
+            )
+            if hasattr(rsp, "output") and rsp.output and getattr(rsp.output, "results", None):
+                url = rsp.output.results[0].url
+                return f"已生成图片，链接: {url}"
+            return f"文生图未返回结果: {getattr(rsp, 'message', rsp)}"
+        except Exception as e:
+            return f"文生图失败: {e}"
+    return text_to_image
+
+
+def _make_describe_image():
+    """图生文（视觉模型描述图片）。仅当 ENABLE_IMAGE_TO_TEXT 为真时加入。"""
+    @tool
+    def describe_image(image_path: str) -> str:
+        """根据图片路径描述图片内容（图生文）。支持本地路径。
+        当用户上传或提供图片路径并希望得到描述时使用。参数: image_path 图片本地路径。"""
+        try:
+            import base64
+            import mimetypes
+            from agent.config import DASHSCOPE_API_KEY, VISION_MODEL
+            path = Path(image_path).resolve()
+            if not path.exists() or not path.is_file():
+                return f"文件不存在或不是文件: {image_path}"
+            with open(path, "rb") as f:
+                b64 = base64.b64encode(f.read()).decode()
+            mime = mimetypes.guess_type(str(path))[0] or "image/png"
+            resp = httpx.post(
+                "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
+                headers={"Authorization": f"Bearer {DASHSCOPE_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": VISION_MODEL,
+                    "messages": [{
+                        "role": "user",
+                        "content": [
+                            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+                            {"type": "text", "text": "请详细描述这张图片的内容。如果图中有文字，请完整提取出来。"},
+                        ],
+                    }],
+                },
+                timeout=60.0,
+            )
+            resp.raise_for_status()
+            return resp.json()["choices"][0]["message"]["content"]
+        except Exception as e:
+            return f"图生文失败: {e}"
+    return describe_image
+
+
+# 基础 5 个工具（保持兼容）
+ALL_TOOLS = [get_current_datetime, calculate, web_search, remember_user_fact, get_weather]
+
+# 常驻扩展工具（免费/低成本）
+EXTRA_TOOLS = [unit_convert, fetch_webpage, format_json, summarize_text, translate_text]
+
+
+def get_all_tools():
+    """返回当前应启用的工具列表：基础 + 扩展 + 可选付费（文生图/图生文仅在配置开启时加入）。"""
+    from agent.config import ENABLE_TEXT_TO_IMAGE, ENABLE_IMAGE_TO_TEXT
+    tools = list(ALL_TOOLS) + list(EXTRA_TOOLS)
+    if ENABLE_TEXT_TO_IMAGE:
+        tools.append(_make_text_to_image())
+    if ENABLE_IMAGE_TO_TEXT:
+        tools.append(_make_describe_image())
+    return tools
+

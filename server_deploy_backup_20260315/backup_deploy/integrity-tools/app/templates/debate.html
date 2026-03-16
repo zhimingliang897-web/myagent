@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 辩论赛 - Integrity Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 900px; margin: 0 auto; padding: 80px 20px 40px; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .form-card { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #888; }
+        .form-group input, .form-group textarea { width: 100%; padding: 12px; background: #0f0f1a; border: 1px solid #2a2a3a; border-radius: 8px; color: #fff; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #667eea; }
+        .btn { padding: 12px 30px; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-stop { background: #ef4444; margin-left: 10px; }
+        .debate-area { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 25px; min-height: 400px; }
+        .phase { text-align: center; padding: 10px; background: rgba(102, 126, 234, 0.2); border-radius: 8px; margin-bottom: 15px; color: #667eea; }
+        .message { padding: 15px; margin-bottom: 10px; border-radius: 8px; }
+        .pro { background: rgba(34, 197, 94, 0.1); border-left: 3px solid #22c55e; }
+        .con { background: rgba(239, 68, 68, 0.1); border-left: 3px solid #ef4444; }
+        .judge { background: rgba(102, 126, 234, 0.1); border-left: 3px solid #667eea; }
+        .speaker { font-weight: bold; margin-bottom: 5px; }
+        .content { line-height: 1.6; white-space: pre-wrap; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(15, 15, 26, 0.9); padding: 15px 20px; border-bottom: 1px solid #2a2a3a; }
+        .nav a { color: #667eea; text-decoration: none; }
+        .status { text-align: center; color: #888; padding: 20px; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">← 返回首页</a>
+    </nav>
+    
+    <div class="container">
+        <h1>🎭 AI 辩论赛</h1>
+        
+        <div class="form-card">
+            <div class="form-group">
+                <label>辩题</label>
+                <input type="text" id="topic" value="AI 是否会让人类更懒惰？" placeholder="输入辩题">
+            </div>
+            <div class="form-group">
+                <label>正方立场</label>
+                <input type="text" id="pro-position" value="AI 会让人类变得更懒惰" placeholder="正方立场">
+            </div>
+            <div class="form-group">
+                <label>反方立场</label>
+                <input type="text" id="con-position" value="AI 不会让人类变得更懒惰" placeholder="反方立场">
+            </div>
+            <button class="btn" id="start-btn" onclick="startDebate()">开始辩论</button>
+            <button class="btn btn-stop" id="stop-btn" onclick="stopDebate()" style="display:none;">停止</button>
+        </div>
+        
+        <div class="debate-area" id="debate-area">
+            <p class="status">点击"开始辩论"观看 AI 辩论赛</p>
+        </div>
+    </div>
+    
+    <script>
+        let eventSource = null;
+        const token = localStorage.getItem('token');
+        
+        if (!token) {
+            alert('请先登录');
+            window.location.href = '/login';
+        }
+        
+        async function startDebate() {
+            const topic = document.getElementById('topic').value.trim();
+            const proPosition = document.getElementById('pro-position').value.trim();
+            const conPosition = document.getElementById('con-position').value.trim();
+            
+            if (!topic || !proPosition || !conPosition) {
+                alert('请填写完整信息');
+                return;
+            }
+            
+            document.getElementById('start-btn').disabled = true;
+            document.getElementById('stop-btn').style.display = 'inline-block';
+            const debateArea = document.getElementById('debate-area');
+            debateArea.innerHTML = '<p class="status">正在连接服务器...</p>';
+            
+            // 先连接 SSE
+            eventSource = new EventSource('/debate/api/stream');
+            let sseConnected = false;
+            
+            eventSource.onopen = async () => {
+                if (sseConnected) return;
+                sseConnected = true;
+                debateArea.innerHTML = '<p class="status">正在初始化辩论...</p>';
+                
+                try {
+                    const res = await fetch('/debate/api/start', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ topic, pro_position: proPosition, con_position: conPosition })
+                    });
+                    
+                    const data = await res.json();
+                    if (data.error) {
+                        debateArea.innerHTML = '<p class="status" style="color:#ef4444;">' + data.error + '</p>';
+                        eventSource.close();
+                        document.getElementById('start-btn').disabled = false;
+                        document.getElementById('stop-btn').style.display = 'none';
+                    } else {
+                        debateArea.innerHTML = '';
+                    }
+                } catch (err) {
+                    debateArea.innerHTML = '<p class="status" style="color:#ef4444;">启动失败: ' + err.message + '</p>';
+                    eventSource.close();
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('stop-btn').style.display = 'none';
+                }
+            };
+            
+            eventSource.addEventListener('phase', (e) => {
+                const data = JSON.parse(e.data);
+                addPhase(data.phase, data.description);
+            });
+            
+            eventSource.addEventListener('speaker', (e) => {
+                const data = JSON.parse(e.data);
+                addSpeaker(data);
+            });
+            
+            eventSource.addEventListener('token', (e) => {
+                const data = JSON.parse(e.data);
+                appendToken(data.speaker_id, data.token);
+            });
+            
+            eventSource.addEventListener('judge', (e) => {
+                const data = JSON.parse(e.data);
+                addJudge(data.content);
+            });
+            
+            eventSource.addEventListener('debate_end', () => {
+                eventSource.close();
+                document.getElementById('start-btn').disabled = false;
+                document.getElementById('stop-btn').style.display = 'none';
+            });
+            
+            eventSource.addEventListener('error', (e) => {
+                if (e.data) {
+                    const data = JSON.parse(e.data);
+                    debateArea.innerHTML += '<p class="status" style="color:#ef4444;">错误: ' + data.message + '</p>';
+                }
+                eventSource.close();
+                document.getElementById('start-btn').disabled = false;
+            });
+            
+            eventSource.onerror = () => {
+                if (!sseConnected) {
+                    debateArea.innerHTML = '<p class="status" style="color:#ef4444;">SSE连接失败</p>';
+                    document.getElementById('start-btn').disabled = false;
+                    document.getElementById('stop-btn').style.display = 'none';
+                }
+            };
+        }
+        
+        function stopDebate() {
+            fetch('/debate/api/stop', { method: 'POST' });
+            if (eventSource) eventSource.close();
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('stop-btn').style.display = 'none';
+        }
+        
+        let currentSpeaker = null;
+        
+        function addPhase(phase, desc) {
+            const area = document.getElementById('debate-area');
+            const div = document.createElement('div');
+            div.className = 'phase';
+            div.textContent = `【${phase}】${desc}`;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+        
+        function addSpeaker(data) {
+            const area = document.getElementById('debate-area');
+            const div = document.createElement('div');
+            div.className = 'message ' + data.side;
+            div.id = 'msg-' + data.id;
+            div.innerHTML = `<div class="speaker">${data.name} (${data.side === 'pro' ? '正方' : '反方'}${data.role})</div><div class="content" id="content-${data.id}"></div>`;
+            area.appendChild(div);
+            currentSpeaker = data.id;
+            area.scrollTop = area.scrollHeight;
+        }
+        
+        function appendToken(speakerId, token) {
+            const content = document.getElementById('content-' + speakerId);
+            if (content) {
+                content.textContent += token;
+                const area = document.getElementById('debate-area');
+                area.scrollTop = area.scrollHeight;
+            }
+        }
+        
+        function addJudge(content) {
+            const area = document.getElementById('debate-area');
+            const div = document.createElement('div');
+            div.className = 'message judge';
+            div.innerHTML = `<div class="speaker">🧑‍⚖️ AI裁判</div><div class="content">${content}</div>`;
+            area.appendChild(div);
+            area.scrollTop = area.scrollHeight;
+        }
+    </script>
+</body>
+</html>

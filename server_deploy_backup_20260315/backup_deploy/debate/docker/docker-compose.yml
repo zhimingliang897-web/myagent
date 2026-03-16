@@ -1,0 +1,15 @@
+services:
+  ai-debate:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../output:/app/output
+    environment:
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - DOUBAO_API_KEY=${DOUBAO_API_KEY}
+      - KIMI_API_KEY=${KIMI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+    restart: unless-stopped

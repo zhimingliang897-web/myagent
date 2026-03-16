@@ -1,5 +1,57 @@
 # Changelog
 
+## Day 7 — 2026-03-09 — Phase 7: 多智能体协作系统 (V2.0)
+
+### 新增
+
+- **多智能体模块** (`agent/multi/`)
+  - `state.py` — `MultiAgentState` 多智能体共享状态
+  - `supervisor.py` — Supervisor 路由决策 + Aggregator 结果汇总
+  - `graph.py` — 多智能体 StateGraph，支持动态 Worker 调度
+  - `workers/base.py` — Worker 基类，统一工具绑定和执行接口
+  - `workers/code_agent.py` — 代码专家（execute_python, check_syntax）
+  - `workers/data_agent.py` — 数据分析专家（analyze_numbers, describe_trend + RAG）
+  - `workers/writer_agent.py` — 写作专家（generate_outline, word_count, format_as_markdown）
+
+- **CLI 多智能体模式**
+  - `main.py` 新增 `--multi` 参数启动多智能体模式
+  - 与 `--classic` 互斥
+
+- **WebUI 模式切换**
+  - 左侧控制面板新增「智能体模式」选项
+  - 支持在线切换单智能体/多智能体模式
+
+- **测试脚本** (`test_multi_agent.py`)
+  - 支持单 Agent 和多 Agent 协作场景测试
+
+### 变更
+
+- `README.md` 更新为 V2.0，添加多智能体系统文档
+- `webui.py` 重构，支持双模式运行
+
+---
+
+## Day 6 — 2026-02-24 — Phase 6: 高级特性 (V1.0 完结)
+
+### 新增
+
+- **流式输出** — `astream_events` 实现 Token-by-Token 打字机效果
+- **长期记忆** — 跨会话用户画像存储（`remember_user_fact` 工具）
+- **Web UI** — Gradio 聊天界面，支持 RAG 模式切换、记忆管理
+
+---
+
+## Day 5 — 2026-02-21 — Phase 5: 深入 RAG 管线
+
+### 新增
+
+- **Markdown 语义分块** — `MarkdownHeaderTextSplitter` 带层级记忆
+- **BM25 词频检索** — `rank_bm25` 精确匹配专有名词
+- **混合检索** — `EnsembleRetriever` + RRF 融合算法
+- **查询改写增强** — 为 Hybrid Search 优化关键词扩充
+
+---
+
 ## Day 4 — 2026-02-11 — Phase 4: 手动构建 StateGraph
 
 ### 新增

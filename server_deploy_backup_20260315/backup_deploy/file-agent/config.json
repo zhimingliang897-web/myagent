@@ -1,0 +1,45 @@
+{
+  "storage": {
+    "root": "/data/myfiles",
+    "uploads": "/data/myfiles/uploads",
+    "trash": "/data/myfiles/.trash",
+    "mounts": []
+  },
+  "auth": {
+    "password": "admin123",
+    "session_secret": "file-agent-secret-key-change-in-production",
+    "session_expire_hours": 24
+  },
+  "upload": {
+    "max_size_mb": 2048,
+    "allowed_ext": [],
+    "chunk_size_mb": 10
+  },
+  "search": {
+    "roots": ["/data/myfiles"],
+    "excluded_dirs": [".trash", "$RECYCLE.BIN", "node_modules", ".git", "__pycache__"],
+    "index_interval_hours": 24,
+    "max_results": 50
+  },
+  "llm": {
+    "api_key": "",
+    "model": "qwen-plus",
+    "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "timeout": 30,
+    "max_retries": 2
+  },
+  "natapp": {
+    "token": "",
+    "enabled": false
+  },
+  "server": {
+    "host": "0.0.0.0",
+    "port": 5004
+  },
+  "email": {
+    "smtp_server": "smtp.qq.com",
+    "smtp_port": 465,
+    "sender": "",
+    "password": ""
+  }
+}

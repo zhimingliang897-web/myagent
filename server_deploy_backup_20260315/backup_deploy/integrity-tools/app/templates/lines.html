@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台词学习 - Integrity Tools</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; }
+        .container { max-width: 900px; margin: 0 auto; padding: 80px 20px 40px; }
+        h1 { text-align: center; margin-bottom: 30px; }
+        .card { background: #1a1a2e; border: 1px solid #2a2a3a; border-radius: 12px; padding: 25px; margin-bottom: 20px; }
+        .nav { position: fixed; top: 0; left: 0; right: 0; background: rgba(15, 15, 26, 0.9); padding: 15px 20px; border-bottom: 1px solid #2a2a3a; }
+        .nav a { color: #667eea; text-decoration: none; }
+        .days-list { display: flex; flex-wrap: wrap; gap: 10px; }
+        .day-item { padding: 15px 20px; background: #0f0f1a; border: 1px solid #2a2a3a; border-radius: 8px; cursor: pointer; }
+        .day-item:hover { border-color: #667eea; }
+        .day-item .num { font-weight: bold; color: #667eea; }
+        .day-item .count { font-size: 0.85rem; color: #888; }
+    </style>
+</head>
+<body>
+    <nav class="nav">
+        <a href="/">← 返回首页</a>
+    </nav>
+    
+    <div class="container">
+        <h1>📝 台词学习</h1>
+        
+        <div class="card">
+            <h3 style="margin-bottom: 15px;">学习天数</h3>
+            <div class="days-list" id="days-list">
+                <p style="color:#888;">加载中...</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadDays() {
+            const res = await fetch('/api/lines/days');
+            const data = await res.json();
+            
+            const list = document.getElementById('days-list');
+            if (data.length === 0) {
+                list.innerHTML = '<p style="color:#888;">暂无学习记录</p>';
+                return;
+            }
+            
+            list.innerHTML = '';
+            for (const day of data) {
+                const div = document.createElement('div');
+                div.className = 'day-item';
+                div.innerHTML = `<div class="num">Day ${day.num}</div><div class="count">${day.word_count} 词</div>`;
+                list.appendChild(div);
+            }
+        }
+        
+        loadDays();
+    </script>
+</body>
+</html>

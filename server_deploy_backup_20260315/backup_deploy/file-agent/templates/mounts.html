@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mounts Manager</title>
+    <style>
+        :root {
+            --bg: #0d0f14;
+            --surface: #161922;
+            --surface2: #1e2230;
+            --border: #2a2f42;
+            --accent: #6c63ff;
+            --text: #e8eaf0;
+            --text-dim: #8892a4;
+            --success: #4ecdc4;
+            --error: #ff6b6b;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px 16px;
+        }
+        .container { max-width: 980px; margin: 0 auto; }
+        h1 { font-size: 22px; font-weight: 600; margin-bottom: 16px; }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px;
+        }
+        .card h2 { font-size: 14px; font-weight: 600; margin-bottom: 12px; color: var(--text); }
+        .row { display: flex; gap: 8px; align-items: center; }
+        .row + .row { margin-top: 10px; }
+        label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; }
+        input, select {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+        }
+        input:focus, select:focus { border-color: var(--accent); }
+        .btn {
+            padding: 8px 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .btn.ghost {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+        }
+        .btn.danger {
+            background: transparent;
+            border: 1px solid #4a2a2a;
+            color: #ff8b8b;
+        }
+        .list { margin-top: 10px; display: grid; gap: 8px; }
+        .item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            padding: 10px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+        }
+        .item .path { font-size: 12px; color: var(--text-dim); margin-top: 4px; }
+        .badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 6px;
+            font-size: 11px;
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            margin-left: 6px;
+        }
+        .msg { font-size: 12px; margin-top: 10px; padding: 8px; border-radius: 8px; display: none; }
+        .msg.success { background: #4ecdc420; color: var(--success); display: block; }
+        .msg.error { background: #ff6b6b20; color: var(--error); display: block; }
+        .browser {
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            min-height: 240px;
+        }
+        .crumbs { font-size: 12px; color: var(--text-dim); margin-bottom: 8px; }
+        .dirs { display: grid; gap: 6px; max-height: 320px; overflow: auto; }
+        .dir {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            cursor: pointer;
+        }
+        .dir:hover { border-color: var(--accent); }
+        .actions { margin-top: 10px; display: flex; gap: 8px; }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .topbar a { color: var(--text-dim); text-decoration: none; }
+        .topbar a:hover { color: var(--text); }
+        @media (max-width: 860px) {
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="topbar">
+            <h1>Mounts Manager</h1>
+            <a href="/">Back to MyFiles</a>
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h2>Existing Mounts</h2>
+                <div class="list" id="mounts-list"></div>
+            </div>
+            <div class="card">
+                <h2>Add Mount</h2>
+                <div class="row">
+                    <div style="flex:1">
+                        <label>Name</label>
+                        <input id="mount-name" placeholder="e.g. Archive">
+                    </div>
+                    <div style="width:140px">
+                        <label>Readonly</label>
+                        <select id="mount-readonly">
+                            <option value="true" selected>Readonly</option>
+                            <option value="false">Writable</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div style="flex:1">
+                        <label>Path</label>
+                        <input id="mount-path" placeholder="Select a folder">
+                    </div>
+                    <div style="width:120px">
+                        <label>Icon</label>
+                        <input id="mount-icon" placeholder="FOLDER">
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn ghost" id="btn-select">Browse</button>
+                    <button class="btn" id="btn-add">Add</button>
+                </div>
+                <div class="msg" id="msg"></div>
+            </div>
+        </div>
+
+        <div class="card" style="margin-top:16px;">
+            <h2>Folder Browser</h2>
+            <div class="browser">
+                <div class="crumbs" id="crumbs">Path: (not selected)</div>
+                <div class="dirs" id="dirs"></div>
+                <div class="actions">
+                    <button class="btn ghost" id="btn-up">Up</button>
+                    <button class="btn" id="btn-use">Use This Path</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentBrowsePath = '';
+
+        async function checkAuth() {
+            try {
+                const res = await fetch('/api/auth/check');
+                if (!res.ok) {
+                    window.location.href = '/login';
+                }
+            } catch (e) {
+                window.location.href = '/login';
+            }
+        }
+
+        function showMsg(text, ok) {
+            const el = document.getElementById('msg');
+            el.textContent = text;
+            el.className = 'msg ' + (ok ? 'success' : 'error');
+        }
+
+        async function loadMounts() {
+            const res = await fetch('/api/mounts', { credentials: 'include' });
+            const data = await res.json();
+            const list = document.getElementById('mounts-list');
+            const items = data.mounts || [];
+            if (items.length === 0) {
+                list.innerHTML = '<div class="item">No mounts yet.</div>';
+                return;
+            }
+            list.innerHTML = items.map(m => `
+                <div class="item">
+                    <div>
+                        <div>${escapeHtml(m.name || '')}
+                            ${m.readonly ? '<span class="badge">readonly</span>' : '<span class="badge">writable</span>'}
+                            ${m.exists ? '' : '<span class="badge">missing</span>'}
+                        </div>
+                        <div class="path">${escapeHtml(m.path || '')}</div>
+                    </div>
+                    <div>
+                        <button class="btn danger" data-path="${escapeHtml(m.path)}" onclick="removeMount(this.dataset.path)">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function removeMount(path) {
+            if (!path) return;
+            if (!confirm('Remove this mount?')) return;
+            const res = await fetch(`/api/mounts?path=${encodeURIComponent(path)}`, {
+                method: 'DELETE',
+                credentials: 'include'
+            });
+            const data = await res.json();
+            showMsg(data.message || 'Done', !!data.success);
+            loadMounts();
+        }
+
+        async function addMount() {
+            const name = document.getElementById('mount-name').value.trim();
+            const path = document.getElementById('mount-path').value.trim();
+            const icon = document.getElementById('mount-icon').value.trim() || 'FOLDER';
+            const readonly = document.getElementById('mount-readonly').value === 'true';
+
+            if (!name || !path) {
+                showMsg('Name and path are required.', false);
+                return;
+            }
+
+            const res = await fetch('/api/mounts', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, path, icon, readonly }),
+                credentials: 'include'
+            });
+            const data = await res.json();
+            showMsg(data.message || 'Done', !!data.success);
+            if (data.success) {
+                document.getElementById('mount-name').value = '';
+                document.getElementById('mount-path').value = '';
+                loadMounts();
+            }
+        }
+
+        async function loadDirs(path = '') {
+            currentBrowsePath = path;
+            const res = await fetch(`/api/mounts/dirs?path=${encodeURIComponent(path)}`, { credentials: 'include' });
+            const data = await res.json();
+            const dirs = data.dirs || [];
+            document.getElementById('crumbs').textContent = 'Path: ' + (data.path || '(root)');
+            document.getElementById('dirs').innerHTML = dirs.map(d => `
+                <div class="dir" data-path="${escapeHtml(d.path)}" onclick="loadDirs(this.dataset.path)">
+                    ${escapeHtml(d.name)}
+                </div>
+            `).join('');
+        }
+
+        function useThisPath() {
+            if (!currentBrowsePath) return;
+            document.getElementById('mount-path').value = currentBrowsePath;
+        }
+
+        function goUp() {
+            if (!currentBrowsePath) {
+                return;
+            }
+            const p = currentBrowsePath.replace(/[\\\/]+$/, '');
+            const idx = Math.max(p.lastIndexOf('\\'), p.lastIndexOf('/'));
+            if (idx <= 0) {
+                loadDirs('');
+            } else {
+                loadDirs(p.slice(0, idx + 1));
+            }
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        document.getElementById('btn-add').addEventListener('click', addMount);
+        document.getElementById('btn-select').addEventListener('click', () => loadDirs(currentBrowsePath || ''));
+        document.getElementById('btn-use').addEventListener('click', useThisPath);
+        document.getElementById('btn-up').addEventListener('click', goUp);
+
+        checkAuth();
+        loadMounts();
+        loadDirs('');
+    </script>
+</body>
+</html>

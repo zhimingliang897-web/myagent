@@ -20,7 +20,29 @@
   - 支持多格式（TXT/MD/PDF/DOCX）加载
   - **Hybrid Search**: FAISS 向量检索 + BM25 词频检索，RRF 融合打分
   - **原生 Markdown 解析**: 带层级关系感知的语义切块
-- 🛠️ **工具链网络**: 网页搜索、数学计算、时间查询等
+- 🛠️ **工具链网络**: 网页搜索、天气查询、数学计算、单位换算、网页抓取、翻译、JSON 格式化等 10+ 个内置工具
+
+## 🛠️ 内置工具
+
+所有工具开箱即用，无需额外配置（付费项除外）。
+
+| 工具 | 描述 | 费用 |
+|------|------|------|
+| `get_current_datetime` | 获取当前日期、时间和星期 | 免费 |
+| `calculate` | 安全数学表达式计算（AST 沙箱） | 免费 |
+| `web_search` | DuckDuckGo 网络搜索，返回标题+摘要+链接 | 免费 |
+| `get_weather` | 实时天气查询（wttr.in，支持中英文城市名） | 免费 |
+| `unit_convert` | 单位换算（长度/重量/温度） | 免费 |
+| `fetch_webpage` | 抓取网页正文并返回纯文本 | 免费 |
+| `format_json` | JSON 格式化与校验 | 免费 |
+| `summarize_text` | 长文本摘要（前 N 句或 500 字） | 免费 |
+| `translate_text` | 文本翻译（调用主 LLM） | 少量 Token |
+| `remember_user_fact` | 跨会话保存用户偏好/事实到长期记忆 | 免费 |
+| `knowledge_search` | 本地知识库混合检索（需建库） | 免费 |
+| `text_to_image` | 文生图（通义万相，需 `.env` 开启） | 付费可选 |
+| `describe_image` | 图生文（视觉模型，需 `.env` 开启） | 付费可选 |
+
+---
 
 ## 🚀 快速开始
 
@@ -224,8 +246,9 @@ START → supervisor → route → worker → increment → supervisor → ... �
 
 | 版本 | 日期 | 主要更新 |
 |-----|------|---------|
-| V2.0 | 2026-03 | 多智能体协作系统 (Supervisor + Workers) |
-| V1.0 | 2026-02 | 完整单智能体系统 (RAG + Memory + WebUI) |
+| V2.1 | 2026-03-17 | 修复 `web_search`（改用 `ddgs` 包）；工具链扩充至 13 个 |
+| V2.0 | 2026-03-09 | 多智能体协作系统 (Supervisor + Workers)；Tabler 风格 WebUI |
+| V1.0 | 2026-02-07 | 完整单智能体系统 (RAG + Memory + WebUI) |
 
 ## 📄 许可证
 

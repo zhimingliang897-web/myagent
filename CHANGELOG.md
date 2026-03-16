@@ -1,5 +1,49 @@
 # Changelog
 
+## Day 9 — 2026-03-17 — 搜索工具修复
+
+### 修复
+
+- **`web_search` 工具失效问题** — 原实现通过正则抓取 DuckDuckGo HTML 页面，因 DDG 更改页面结构导致永远返回"未找到结果"
+  - 改用官方 `ddgs` Python 包（原 `duckduckgo-search`，已更名）进行搜索
+  - 搜索结果改为返回「标题 + 摘要 + 来源链接」，信息更完整
+- `requirements.txt` 将 `duckduckgo-search` 替换为 `ddgs>=9.0.0`
+
+---
+
+## Day 8 — 2026-03-15 — 服务器部署优化 & 工具扩充 (V2.1)
+
+### 新增
+
+- **工具链扩充**（`agent/tools.py`）
+
+| 工具 | 功能 | 费用 |
+|------|------|------|
+| `get_weather` | 实时天气查询（wttr.in 免费 API） | 免费 |
+| `unit_convert` | 单位换算（长度/重量/温度） | 免费 |
+| `fetch_webpage` | 抓取网页正文并返回纯文本 | 免费 |
+| `format_json` | JSON 格式化 / 校验 | 免费 |
+| `summarize_text` | 对长文本做简短摘要 | 免费 |
+| `translate_text` | 文本翻译（调用主 LLM） | 少量 Token |
+| `text_to_image` | 文生图（通义万相，可选开启） | 付费可选 |
+| `describe_image` | 图生文（视觉模型，可选开启） | 付费可选 |
+
+- **服务器部署备份** — `server_deploy_backup_20260315/`，涵盖所有服务代码、Nginx 配置及一键启停脚本
+- **长期记忆模块** — `agent/memory/profile.py`，用户画像持久化至 `data/user_profile.json`
+
+### 变更
+
+- **Nginx HTTP 访问** — 移除 HTTPS 强制跳转，改为同时支持 IP 直连和域名访问，解决浏览器 HSTS 缓存导致的无法访问问题
+- **WebUI 重构**（`webui.py`）— Tabler 风格现代化 UI，新增会话命名、Token 统计面板、执行过程 Terminal 展示
+- **配置变更**（`agent/config.py`）— 主模型由 `deepseek-v3.1` 切换为 `qwen-plus`；新增付费能力开关 `ENABLE_TEXT_TO_IMAGE` / `ENABLE_IMAGE_TO_TEXT`
+
+### 服务器更新
+
+- Nginx 配置改为 HTTP 模式，新增 `/files/` 路由指向 File Agent
+- 访问地址改为 `http://8.138.164.133/agent/`（移除 HTTPS）
+
+---
+
 ## Day 7 — 2026-03-09 — Phase 7: 多智能体协作系统 (V2.0)
 
 ### 新增

@@ -12,10 +12,16 @@
 
 ## 访问地址
 
-- **MyAgent**: https://api.liangyiren.top/agent/
-- **AI辩论赛**: https://api.liangyiren.top/debate
-- **PDF工具**: https://api.liangyiren.top/pdf
-- **Video下载**: https://api.liangyiren.top/video/
+| 服务 | 地址 |
+|------|------|
+| **主页 (Integrity Tools)** | `http://8.138.164.133/` |
+| **MyAgent 智能体** | `http://8.138.164.133/agent/` |
+| **AI 辩论赛** | `http://8.138.164.133/debate/` |
+| **PDF 工具** | `http://8.138.164.133/pdf/` |
+| **File Agent** | `http://8.138.164.133/files/` |
+| **Video 下载** | `http://8.138.164.133/video/` |
+
+> **注意**：服务器已移除 HTTPS 强制跳转，统一使用 HTTP 访问。如果浏览器仍跳转 HTTPS，请在 Chrome 地址栏输入 `chrome://net-internals/#hsts`，删除 `api.liangyiren.top` 的安全策略后重试。
 
 ## 目录结构
 
@@ -61,7 +67,7 @@ conda activate myagent
 pip install -i https://pypi.tuna.tsinghua.edu.cn/simple \
   langchain langchain-community langchain-core langchain-text-splitters \
   langgraph langgraph-checkpoint-sqlite dashscope faiss-cpu \
-  python-dotenv httpx python-docx openpyxl python-pptx rank_bm25 gradio
+  python-dotenv httpx python-docx openpyxl python-pptx rank_bm25 gradio ddgs
 ```
 
 ### 4. 配置环境变量
@@ -240,4 +246,4 @@ systemctl restart myagent
 
 ---
 
-*最后更新: 2026-03-15*
+*最后更新: 2026-03-17*

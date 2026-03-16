@@ -67,28 +67,18 @@ def web_search(query: str) -> str:
     当用户询问时事新闻、你不确定的事实或任何需要最新互联网信息的问题时使用此工具。
     返回搜索结果摘要。"""
     try:
-        url = "https://html.duckduckgo.com/html/"
-        response = httpx.post(
-            url,
-            data={"q": query},
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10.0,
-        )
-        response.raise_for_status()
-
-        results = []
-        snippets = re.findall(
-            r'class="result__snippet">(.*?)</a>', response.text, re.DOTALL
-        )
-        for i, snippet in enumerate(snippets[:5]):
-            clean = re.sub(r"<.*?>", "", snippet).strip()
-            if clean:
-                results.append(f"{i + 1}. {clean}")
-
-        if results:
-            return "\n".join(results)
-        else:
+        from ddgs import DDGS
+        with DDGS() as ddgs:
+            hits = list(ddgs.text(query, max_results=5))
+        if not hits:
             return f"未找到关于 '{query}' 的搜索结果"
+        results = []
+        for i, r in enumerate(hits, 1):
+            title = r.get("title", "")
+            body = r.get("body", "")
+            href = r.get("href", "")
+            results.append(f"{i}. 【{title}】\n{body}\n{href}")
+        return "\n\n".join(results)
     except Exception as e:
         return f"搜索出错: {e}"
 

@@ -63,22 +63,20 @@ def calculate(expression: str) -> str:
 
 @tool
 def web_search(query: str) -> str:
-    """使用 DuckDuckGo 搜索网络信息。
-    当用户询问时事新闻、你不确定的事实或任何需要最新互联网信息的问题时使用此工具。
-    返回搜索结果摘要。"""
+    """搜索互联网获取最新信息。
+    当用户询问时事新闻、实时数据（股价/指数/天气/比赛结果）或你不确定的事实时使用此工具。
+    返回标题、摘要和来源链接。支持中英文查询。"""
     try:
         from ddgs import DDGS
         with DDGS() as ddgs:
             hits = list(ddgs.text(query, max_results=5))
         if not hits:
-            return f"未找到关于 '{query}' 的搜索结果"
-        results = []
-        for i, r in enumerate(hits, 1):
-            title = r.get("title", "")
-            body = r.get("body", "")
-            href = r.get("href", "")
-            results.append(f"{i}. 【{title}】\n{body}\n{href}")
-        return "\n\n".join(results)
+            return f"未找到关于 '{query}' 的搜索结果，请尝试换个关键词。"
+        lines = [
+            f"{i}. 【{r.get('title', '')}】\n{r.get('body', '')}\n{r.get('href', '')}"
+            for i, r in enumerate(hits, 1)
+        ]
+        return "\n\n".join(lines)
     except Exception as e:
         return f"搜索出错: {e}"
 
